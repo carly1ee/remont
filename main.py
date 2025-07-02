@@ -13,8 +13,9 @@ app = Flask(__name__)
 app.config['JWT_SECRET_KEY'] = config.SECRET_KEY
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = False  # Для теста
 
-# Инициализация расширений
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+CORS(app)
+
 jwt = JWTManager(app)
 DatabaseManager.initialize(config)
 
