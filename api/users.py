@@ -219,7 +219,7 @@ def update_schedule(user_id):
         target_user = UserDAL.get_user_by_id(user_id)
 
         # Проверка прав (админ или сам пользователь)
-        if current_user['user_id'] != user_id and current_user['role_id'] != 3:
+        if current_user['role_id'] != 3:
             return jsonify({'error': 'Insufficient permissions'}), 403
 
         # Проверка что пользователь - инженер
