@@ -98,3 +98,65 @@ def my_requests():
         logger.error(f"Error fetching requests: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
+@requests_bp.route('/engineer/completed/<int:page>', methods=['GET'])
+@jwt_required()
+def my_completed_requests(page: int):
+    try:
+        current_user_id = get_jwt_identity()
+        user = UserDAL.get_user_by_id(current_user_id)
+
+        if not user or user.get('role_id') != 1:  # Только инженер
+            return jsonify({'error': 'Only engineers can access their requests'}), 403
+
+        per_page = 10
+
+        # Получаем заявки
+        requests = RequestDAL.get_completed_requests(current_user_id, page, per_page)
+
+        if isinstance(requests, str):  # Ошибка
+            return jsonify({'error': requests}), 500
+
+        return jsonify({
+            "engineer_id": current_user_id,
+            "page": page,
+            "per_page": per_page,
+            "total": len(requests),
+            "requests": requests
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error fetching completed requests: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+@requests_bp.route('/<int:request_id>', methods=['PUT'])
+@jwt_required()
+def update_request_api(request_id: int):
+    try:
+        current_user_id = get_jwt_identity()
+        user = UserDAL.get_user_by_id(current_user_id)
+
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        result = RequestDAL.update_request(
+            user_id=current_user_id,
+            role_id=user['role_id'],
+            request_id=request_id,
+            updates=data
+        )
+
+        if isinstance(result, str):  # Ошибка
+            return jsonify({'error': result}), 500
+
+        return jsonify({
+            'message': 'Request updated successfully',
+            'request': result
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error updating request: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
