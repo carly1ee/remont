@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from dal.request import RequestDAL
 from dal.users import UserDAL
 import logging
+from datetime import datetime
 
 # Создание блюпринта
 requests_bp = Blueprint('requests', __name__, url_prefix='/requests')
@@ -55,9 +56,9 @@ def create_request():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@requests_bp.route('/engineer/<int:page>', methods=['GET'])
+@requests_bp.route('/engineer', methods=['GET'])
 @jwt_required()
-def my_requests_paginated(page: int):
+def my_requests():
     try:
         current_user_id = get_jwt_identity()
         user = UserDAL.get_user_by_id(current_user_id)
@@ -65,20 +66,35 @@ def my_requests_paginated(page: int):
         if not user or user.get('role_id') != 1:
             return jsonify({'error': 'Only engineers can access their requests'}), 403
 
-        per_page = 10
-        requests = RequestDAL.get_requests_by_engineer(current_user_id, page, per_page)
+        # Получаем дату из запроса
+        date_str = request.args.get('date')
+        if not date_str:
+            return jsonify({'error': 'Missing date parameter (format: YYYY-MM-DD)'}), 400
+
+        try:
+            # Проверяем формат даты
+            date_filter = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+
+        # Фильтруем по status_id = 2 и 3
+        requests = RequestDAL.get_requests_by_engineer(
+            engineer_id=current_user_id,
+            status_ids=[2, 3],
+            date_filter=date_filter
+        )
 
         if isinstance(requests, str):  # Ошибка
             return jsonify({'error': requests}), 500
 
         return jsonify({
             "engineer_id": current_user_id,
-            "page": page,
-            "per_page": per_page,
             "total": len(requests),
+            "date_filter": date_str,
             "requests": requests
         }), 200
 
     except Exception as e:
         logger.error(f"Error fetching requests: {e}")
         return jsonify({'error': 'Internal server error'}), 500
+
