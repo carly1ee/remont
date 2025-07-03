@@ -1,6 +1,6 @@
-from typing import Optional, Dict
+from typing import Optional, Dict, Union
 import logging
-from database.db_manager import DatabaseManager
+from db_manager import DatabaseManager
 
 logger = logging.getLogger(__name__)
 
@@ -59,3 +59,58 @@ class EngineerProfileDAL:
         except Exception as e:
             logger.error(f"Error updating engineer schedule: {e}")
             return False
+
+    @staticmethod
+    def update_engineer_balance(admin_id: int, engineer_id: int, new_balance: float) -> Union[str, dict]:
+        """
+        Обновляет баланс инженера. Менять может только пользователь с ролью менеджера (role_id = 3)
+        """
+
+        try:
+            with DatabaseManager.get_cursor() as cursor:
+                # Проверяем, является ли пользователь менеджером
+                cursor.execute("""
+                        SELECT 1 FROM users WHERE user_id = %s AND role_id = 3;
+                    """, (admin_id,))
+                is_admin = cursor.fetchone()
+
+                if not is_admin:
+                    return "Only manager can change engineer's balance"
+
+                # Получаем текущий баланс
+                cursor.execute("""
+                        SELECT balance FROM engineer_profile WHERE user_id = %s;
+                    """, (engineer_id,))
+                result = cursor.fetchone()
+
+                if not result:
+                    return "Engineer profile not found"
+
+                old_balance = result['balance']
+
+                # Обновляем баланс
+                cursor.execute("""
+                        UPDATE engineer_profile
+                        SET balance = %s
+                        WHERE user_id = %s
+                        RETURNING balance;
+                    """, (new_balance, engineer_id))
+
+                # Логируем изменение
+                cursor.execute("""
+                        INSERT INTO balance_history (
+                            admin_id, engineer_id, old_sum, new_sum
+                        ) VALUES (%s, %s, %s, %s);
+                    """, (admin_id, engineer_id, old_balance, new_balance))
+
+                logger.info(f"Balance updated for engineer {engineer_id} by admin {admin_id}")
+
+                return {
+                    "message": "Balance updated successfully",
+                    "old_balance": old_balance,
+                    "new_balance": new_balance
+                }
+
+        except Exception as e:
+            logger.error(f"Error updating engineer balance: {e}")
+            return "Internal server error"
