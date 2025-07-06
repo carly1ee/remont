@@ -45,7 +45,6 @@ def register():
 
 
         if data['role_id'] == 1:
-            print(2)
             UserDAL.create_engineer_profile(user_id=result,
                                             schedule=data.get('schedule'))
             logger.info(f"Engineer profile created for user {result}")

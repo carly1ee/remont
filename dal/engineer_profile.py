@@ -114,3 +114,35 @@ class EngineerProfileDAL:
         except Exception as e:
             logger.error(f"Error updating engineer balance: {e}")
             return "Internal server error"
+
+    @staticmethod
+    def get_engineer_balance(engineer_user_id: int) -> Union[Dict[str, Union[int, float]], str]:
+        """
+        Получает баланс инженера по его user_id
+        """
+        try:
+            with DatabaseManager.get_cursor() as cursor:
+                query = """
+                        SELECT 
+                            ep.balance,
+                            u.name AS engineer_name
+                        FROM engineer_profile ep
+                        JOIN users u ON ep.user_id = u.user_id
+                        WHERE ep.user_id = %s;
+                    """
+                cursor.execute(query, (engineer_user_id,))
+                result = cursor.fetchone()
+
+                if not result:
+                    logger.warning(f"Engineer with ID {engineer_user_id} not found")
+                    return "Engineer not found"
+
+                return {
+                    'engineer_id': engineer_user_id,
+                    'engineer_name': result['engineer_name'],
+                    'balance': float(result['balance']) if result['balance'] else 0.0
+                }
+
+        except Exception as e:
+            logger.error(f"Error fetching balance for engineer {engineer_user_id}: {e}")
+            return "Internal server error"
