@@ -107,39 +107,50 @@ class RequestDAL:
             return "Internal server error"
 
     @staticmethod
-    def get_completed_requests(engineer_id: int, page: int = 1, per_page: int = 10) -> Union[List[Dict], str]:
+    def get_completed_requests_with_total(engineer_id: int, page: int = 1, per_page: int = 10) -> Union[Dict, str]:
         """
-        Получает список выполненных заявок (status_id = 4) для конкретного инженера
+        Получает список выполненных заявок (status_id = 4) и общее количество
         """
         try:
             offset = (page - 1) * per_page
 
             with DatabaseManager.get_cursor() as cursor:
+                # Подсчёт общего количества
+                cursor.execute("""
+                    SELECT COUNT(*) 
+                    FROM request
+                    WHERE engineer_id = %s AND status_id = 4;
+                """, (engineer_id,))
+                total = cursor.fetchone()['count']
+
+                # Получение данных с пагинацией
                 query = """
-                        SELECT 
-                            request_id,
-                            operator_id,
-                            engineer_id,
-                            status_id,
-                            customer_name,
-                            phone,
-                            adress AS address,
-                            techniq AS equipment,
-                            description,
-                            creation_date,
-                            assigned_time,
-                            in_works_time,
-                            done_time
-                        FROM request
-                        WHERE engineer_id = %s AND status_id = 4
-                        ORDER BY done_time DESC
-                        LIMIT %s OFFSET %s;
-                    """
+                    SELECT 
+                        request_id,
+                        operator_id,
+                        engineer_id,
+                        status_id,
+                        customer_name,
+                        phone,
+                        adress AS address,
+                        techniq AS equipment,
+                        description,
+                        creation_date,
+                        assigned_time,
+                        in_works_time,
+                        done_time
+                    FROM request
+                    WHERE engineer_id = %s AND status_id = 4
+                    ORDER BY done_time DESC
+                    LIMIT %s OFFSET %s;
+                """
                 cursor.execute(query, (engineer_id, per_page, offset))
                 result = cursor.fetchall()
 
-                logger.info(f"Found {len(result)} completed requests for engineer {engineer_id} (page {page})")
-                return result
+                return {
+                    'requests': result,
+                    'total': total
+                }
 
         except Exception as e:
             logger.error(f"Error fetching completed requests for engineer {engineer_id}: {e}")
@@ -238,7 +249,7 @@ class RequestDAL:
         try:
             with DatabaseManager.get_cursor() as cursor:
                 query = """
-                        SELECT COUNT(*) AS count, 
+                        SELECT COUNT(*) AS count
                         FROM request
                         WHERE status_id = 4
                           AND engineer_id = %s
@@ -424,4 +435,40 @@ class RequestDAL:
 
         except Exception as e:
             logger.error(f"Error fetching engineers stats: {e}")
+            return "Internal server error"
+
+    @staticmethod
+    def get_assigned_and_in_works_requests(engineer_id: int) -> Union[List[Dict], str]:
+        """
+        Получает заявки инженера со статусами 2 и 3,
+        где assigned_time <= текущее время
+        """
+        try:
+            with DatabaseManager.get_cursor() as cursor:
+                query = """
+                    SELECT 
+                        request_id,
+                        operator_id,
+                        engineer_id,
+                        status_id,
+                        customer_name,
+                        phone,
+                        adress AS address,
+                        techniq AS equipment,
+                        description,
+                        creation_date,
+                        assigned_time,
+                        in_works_time,
+                        done_time
+                    FROM request
+                    WHERE engineer_id = %s
+                      AND status_id IN (2, 3)
+                      AND assigned_time <= NOW()
+                    ORDER BY assigned_time DESC;
+                """
+                cursor.execute(query, (engineer_id,))
+                return cursor.fetchall()
+
+        except Exception as e:
+            logger.error(f"Error fetching requests for engineer {engineer_id}: {e}")
             return "Internal server error"

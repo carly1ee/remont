@@ -111,18 +111,18 @@ def my_completed_requests(page: int):
 
         per_page = 10
 
-        # Получаем заявки
-        requests = RequestDAL.get_completed_requests(current_user_id, page, per_page)
+        # Получаем данные и общее количество
+        data = RequestDAL.get_completed_requests_with_total(current_user_id, page, per_page)
 
-        if isinstance(requests, str):  # Ошибка
-            return jsonify({'error': requests}), 500
+        if isinstance(data, str):  # Ошибка
+            return jsonify({'error': data}), 500
 
         return jsonify({
             "engineer_id": current_user_id,
             "page": page,
             "per_page": per_page,
-            "total": len(requests),
-            "requests": requests
+            "total": data['total'],
+            "requests": data['requests']
         }), 200
 
     except Exception as e:
@@ -422,4 +422,30 @@ def soft_delete_request(request_id: int):
 
     except Exception as e:
         logger.error(f"Error deleting request: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+@requests_bp.route('/engineer/active', methods=['GET'])
+@jwt_required()
+def my_assigned_requests():
+    try:
+        current_user_id = get_jwt_identity()
+        user = UserDAL.get_user_by_id(current_user_id)
+
+        if not user or user['role_id'] != 1:  # Только инженер
+            return jsonify({'error': 'Access denied'}), 403
+
+        # Получаем заявки через DAL
+        result = RequestDAL.get_assigned_and_in_works_requests(current_user_id)
+
+        if isinstance(result, str):
+            return jsonify({'error': result}), 500
+
+        return jsonify({
+            'engineer_id': current_user_id,
+            'total': len(result),
+            'requests': result
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error fetching assigned requests: {e}")
         return jsonify({'error': 'Internal server error'}), 500
