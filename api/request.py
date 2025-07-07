@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from dal.request import RequestDAL
 from dal.users import UserDAL
 import logging
-from datetime import datetime
+from datetime import datetime, time
 
 # Создание блюпринта
 requests_bp = Blueprint('requests', __name__, url_prefix='/requests')
@@ -275,14 +275,34 @@ def filter_requests():
         # Парсим параметры из JSON
         engineer_id = data.get('engineer_id')
         status_ids = data.get('status_ids')  # Ожидаем список чисел
-        start_date_str = data.get('start_date')
-        end_date_str = data.get('end_date')
+        start_date_str = data.get('start_date')  # Формат: "YYYY-MM-DD"
+        end_date_str = data.get('end_date')      # Формат: "YYYY-MM-DD"
         page = data.get('page', 1)
         per_page = data.get('per_page', 10)
 
-        # Конвертируем даты
-        start_date = datetime.fromisoformat(start_date_str) if start_date_str else None
-        end_date = datetime.fromisoformat(end_date_str) if end_date_str else None
+        # Конвертируем даты без времени
+        start_date = None
+        end_date = None
+
+        if start_date_str:
+            try:
+            # start_date -> начало дня (00:00:00)
+                start_date = datetime.combine(
+                    datetime.fromisoformat(start_date_str).date(),
+                    time.min
+                )
+            except ValueError:
+                return jsonify({'error': 'Invalid date format for start_date. Use YYYY-MM-DD'}), 400
+
+        if end_date_str:
+            try:
+            # end_date -> конец дня (23:59:59)
+                end_date = datetime.combine(
+                    datetime.fromisoformat(end_date_str).date(),
+                    time.max
+                )
+            except ValueError:
+                return jsonify({'error': 'Invalid date format for end_date. Use YYYY-MM-DD'}), 400
 
         # Проверяем типы
         if not isinstance(page, int) or page < 1:
