@@ -17,7 +17,7 @@ def create_request():
         current_user_id = get_jwt_identity()
         user = UserDAL.get_user_by_id(current_user_id)
 
-        if not user or user.get('role_id') != 2:  # Только оператор (role_id=2)
+        if not user or user.get('role_id') not in [2, 3]:  # только оператор или менеджер
             return jsonify({'error': 'Only operator can create requests'}), 403
 
         data = request.get_json()
@@ -27,6 +27,13 @@ def create_request():
             return jsonify({'error': 'Missing required fields'}), 400
 
         engineer_id = data.get('engineer_id')  # Необязательное поле
+        assigned_time = None
+
+        if 'assigned_time' in data:
+            try:
+                assigned_time = datetime.fromisoformat(data['assigned_time'])
+            except ValueError:
+                return jsonify({'error': 'Invalid date format for assigned_time. Use ISO format.'}), 400
 
         result = RequestDAL.create_request(
             operator_id=current_user_id,
@@ -36,7 +43,8 @@ def create_request():
             techniq=data['techniq'],
             description=data['description'],
             customer_name=data['customer_name'],
-            engineer_id=engineer_id
+            engineer_id=engineer_id,
+            assigned_time=assigned_time
         )
 
         if isinstance(result, dict):
@@ -45,7 +53,8 @@ def create_request():
                 'request_id': result['request_id'],
                 'creation_date': result['creation_date']
             }
-            if engineer_id:
+
+            if result.get('assigned_time') is not None:
                 response['assigned_time'] = result['assigned_time']
 
             return jsonify(response), 201
@@ -286,7 +295,6 @@ def filter_requests():
 
         if start_date_str:
             try:
-            # start_date -> начало дня (00:00:00)
                 start_date = datetime.combine(
                     datetime.fromisoformat(start_date_str).date(),
                     time.min
@@ -296,7 +304,6 @@ def filter_requests():
 
         if end_date_str:
             try:
-            # end_date -> конец дня (23:59:59)
                 end_date = datetime.combine(
                     datetime.fromisoformat(end_date_str).date(),
                     time.max
@@ -310,7 +317,18 @@ def filter_requests():
         if not isinstance(per_page, int) or per_page < 1 or per_page > 100:
             per_page = 10
 
-        # Получаем данные из БД
+        # Получаем общее количество записей
+        total = RequestDAL.get_filtered_requests_total(
+            engineer_id=engineer_id,
+            status_ids=status_ids,
+            start_date=start_date,
+            end_date=end_date
+        )
+
+        if isinstance(total, str):
+            return jsonify({'error': total}), 500
+
+        # Получаем данные для текущей страницы
         result = RequestDAL.get_filtered_requests(
             engineer_id=engineer_id,
             status_ids=status_ids,
@@ -333,7 +351,8 @@ def filter_requests():
                 'page': page,
                 'per_page': per_page
             },
-            'total': len(result),
+            'total': total,
+            'current_page_count': len(result),
             'requests': result
         }), 200
 

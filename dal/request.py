@@ -18,16 +18,18 @@ class RequestDAL:
             address: str,
             techniq: str,
             description: str,
-            customer_name: str,
-            engineer_id: Optional[int] = None
-    ) -> Union[dict, str]:
+            customer_name: str,  # Теперь обязательное
+            engineer_id: Optional[int] = None,
+            assigned_time: Optional[datetime] = None
+    ) -> Union[Dict[str, any], str]:
         """
-        Создаёт заявку и проставляет время создания и назначенного инженера (если есть)
-        Возвращает словарь с данными заявки или сообщение об ошибке
+        Создаёт заявку.
+        - Поле customer_name обязательно
+        - Поле assigned_time — только если передано
         """
         try:
             with DatabaseManager.get_cursor() as cursor:
-                # Формируем запрос
+                # Формируем SQL-запрос
                 query = """
                         INSERT INTO request (
                             operator_id, engineer_id, status_id, 
@@ -35,19 +37,28 @@ class RequestDAL:
                             creation_date, assigned_time
                         )
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s)
-                        RETURNING request_id, creation_date, assigned_time;
+                        RETURNING 
+                            request_id, 
+                            creation_date, 
+                            assigned_time;
                     """
 
-                # Если указан engineer_id — assigned_time = creation_date
-                assigned_time = 'NOW()' if engineer_id else 'NULL'
+                # Если assigned_time не передан — будет NULL
+                params = [
+                    operator_id,
+                    engineer_id,
+                    status_id,
+                    phone,
+                    address,
+                    techniq,
+                    description,
+                    customer_name,
+                    assigned_time  # Может быть None → в БД запишется NULL
+                ]
 
-                cursor.execute(query, (
-                    operator_id, engineer_id, status_id,
-                    phone, address, techniq, description, customer_name,
-                    assigned_time if engineer_id else None
-                ))
-
+                cursor.execute(query, tuple(params))
                 result = cursor.fetchone()
+
                 logger.info(f"Request created with ID {result['request_id']}")
                 return {
                     "request_id": result["request_id"],
@@ -331,6 +342,51 @@ class RequestDAL:
             return "Internal server error"
 
     @staticmethod
+    def get_filtered_requests_total(
+            engineer_id: Optional[int] = None,
+            status_ids: Optional[list] = None,
+            start_date: Optional[datetime] = None,
+            end_date: Optional[datetime] = None
+    ) -> Union[int, str]:
+        """
+        Возвращает общее количество заявок по фильтрам
+        """
+        try:
+            with DatabaseManager.get_cursor() as cursor:
+                query = """
+                    SELECT COUNT(*) AS total
+                    FROM request r
+                    WHERE 1=1
+                """
+
+                params = []
+
+                if engineer_id is not None:
+                    query += " AND r.engineer_id = %s"
+                    params.append(engineer_id)
+
+                if status_ids:
+                    query += " AND r.status_id = ANY(%s)"
+                    params.append(status_ids)
+
+                if start_date:
+                    query += " AND r.creation_date >= %s"
+                    params.append(start_date)
+
+                if end_date:
+                    query += " AND r.creation_date <= %s"
+                    params.append(end_date)
+
+                cursor.execute(query, params)
+                result = cursor.fetchone()
+
+                return result['total'] if result else 0
+
+        except Exception as e:
+            logger.error(f"Error fetching total count for filtered requests: {e}")
+            return "Internal server error"
+
+    @staticmethod
     def get_filtered_requests(
             engineer_id: Optional[int] = None,
             status_ids: Optional[list] = None,
@@ -355,6 +411,7 @@ class RequestDAL:
                         u.name AS engineer_name,
                         s.status AS status_name,
                         r.phone,
+                        r.customer_name,
                         r.adress AS address,
                         r.techniq AS equipment,
                         r.description,
