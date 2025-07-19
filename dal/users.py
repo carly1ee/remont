@@ -1,5 +1,6 @@
-from typing import Optional, Dict, Union
+from typing import Optional, Dict, Union, List
 import logging
+import psycopg2
 from datetime import datetime
 from db_manager import DatabaseManager
 
@@ -9,7 +10,7 @@ logger = logging.getLogger(__name__)
 class UserDAL:
     @staticmethod
     def create_user(name: str, login: str, password: str, role_id: int = 1,
-                  phone: Optional[str] = None, email: Optional[str] = None) -> Union[int, str]:
+                    phone: Optional[str] = None, email: Optional[str] = None) -> int:
         try:
             with DatabaseManager.get_cursor() as cursor:
                 cursor.execute(
@@ -25,12 +26,13 @@ class UserDAL:
                 return user_id
         except psycopg2.IntegrityError as e:
             if 'login' in str(e):
-                return "Login already exists"
+                logger.warning(f"Attempt to create user with existing login: {login}")
+                raise ValueError("Login already exists")  # Выбрасываем исключение
             logger.error(f"Integrity error: {e}")
-            return "User creation error"
+            raise  # Передаем другие ошибки дальше
         except Exception as e:
             logger.error(f"Error creating user: {e}")
-            return "Internal server error"
+            raise  # Передаем исключение дальше
 
     @staticmethod
     def authenticate_user(login: str, password: str) -> Optional[Dict]:
@@ -103,19 +105,6 @@ class UserDAL:
             logger.error(f"Error checking role: {e}")
             return False
 
-    @staticmethod
-    def delete_user_by_id(user_id: int) -> bool:
-        """Удаляет пользователя по ID"""
-        try:
-            with DatabaseManager.get_cursor() as cursor:
-                cursor.execute(
-                    "DELETE FROM users WHERE user_id = %s RETURNING user_id;",
-                    (user_id,)
-                )
-                return cursor.fetchone() is not None
-        except Exception as e:
-            logger.error(f"Error deleting user ID {user_id}: {e}")
-            return False
 
     @staticmethod
     def user_exists_by_id(user_id: int) -> bool:
@@ -237,4 +226,31 @@ class UserDAL:
                 return "OK"
         except Exception as e:
             logger.error(f"Error deleting user {user_id}: {e}")
+            return "Internal server error"
+
+    @staticmethod
+    def get_all_users_with_details() -> Union[List[Dict], str]:
+        """
+        Получает список всех пользователей, с расписанием и балансом для инженеров
+        """
+        try:
+            with DatabaseManager.get_cursor() as cursor:
+                query = """
+                        SELECT
+                            u.user_id,
+                            u.name,
+                            u.phone,
+                            u.email,
+                            u.role_id,
+                            r.role
+                        FROM users u
+                        LEFT JOIN roles r ON u.role_id = r.role_id
+                        WHERE u.role_id != 1
+                        ORDER BY u.user_id;
+                    """
+                cursor.execute(query)
+                result = cursor.fetchall()
+                return [dict(row) for row in result]
+        except Exception as e:
+            logger.error(f"Error fetching users: {e}")
             return "Internal server error"

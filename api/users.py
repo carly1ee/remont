@@ -27,10 +27,8 @@ def register():
         data = request.get_json()
         required_fields = ['name', 'login', 'password', 'role_id']
 
-
         if not all(field in data for field in required_fields):
             return jsonify({'error': 'Missing required fields'}), 400
-
 
         if data['role_id'] == 1 and 'schedule' not in data:
             return jsonify({'error': 'Schedule is required for engineers'}), 400
@@ -39,7 +37,7 @@ def register():
         if not UserDAL.check_role_exists(data['role_id']):
             return jsonify({'error': 'Invalid role_id'}), 400
 
-
+        # Создание пользователя
         result = UserDAL.create_user(
             name=data['name'],
             login=data['login'],
@@ -49,20 +47,19 @@ def register():
             email=data.get('email')
         )
 
-
         if data['role_id'] == 1:
-            UserDAL.create_engineer_profile(user_id=result,
-                                            schedule=data.get('schedule'))
+            UserDAL.create_engineer_profile(user_id=result, schedule=data.get('schedule'))
             logger.info(f"Engineer profile created for user {result}")
 
-        if isinstance(result, int):
-            return jsonify({
-                'message': 'User created successfully',
-                'user_id': result
-            }), 201
+        return jsonify({
+            'message': 'User created successfully',
+            'user_id': result
+        }), 201
 
-        return jsonify({'error': result}), 400
-
+    except ValueError as e:
+        if str(e) == "Login already exists":
+            return jsonify({'error': 'Login already exists'}), 409
+        return jsonify({'error': str(e)}), 400
     except Exception as e:
         logger.error(f"Registration error: {e}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -285,4 +282,49 @@ def delete_user(user_id: int):
 
     except Exception as e:
         logger.error(f"Error deleting user: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@users_bp.route('/', methods=['GET'])
+@jwt_required()
+def get_all_users():
+    try:
+        current_user_id = get_jwt_identity()
+        current_user = UserDAL.get_user_by_id(current_user_id)
+
+        # Проверяем, что текущий пользователь — менеджер или админ
+        if not current_user or current_user['role_id'] != 3:
+            return jsonify({'error': 'Access denied'}), 403
+
+        # Получаем всех пользователей
+        users = UserDAL.get_all_users_with_details()
+
+        if isinstance(users, str):
+            return jsonify({'error': users}), 500
+
+        # Формируем ответ
+        response = []
+        for user in users:
+            user_data = {
+                "user_id": user["user_id"],
+                "name": user["name"],
+                "phone": user["phone"],
+                "email": user["email"],
+                "role_id": user["role_id"],
+                "role": user["role"]
+            }
+
+            # Если это инженер — добавляем schedule и balance
+            if user["role_id"] == 1:
+                user_data.update({
+                    "schedule": user.get("schedule"),
+                    "balance": float(user["balance"]) if user.get("balance") is not None else 0.0
+                })
+
+            response.append(user_data)
+
+        return jsonify(response), 200
+
+    except Exception as e:
+        logger.error(f"Error fetching users: {e}")
         return jsonify({'error': 'Internal server error'}), 500
