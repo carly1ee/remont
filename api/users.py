@@ -1,7 +1,13 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-from dal.users import UserDAL
 import logging
+
+from dal.users import UserDAL
+from dal.request import RequestDAL
+from dal.balance_history import BalanceHistoryDAL
+from dal.request_history import RequestHistoryDAL
+from dal.engineer_profile import EngineerProfileDAL
+
 
 # Создание блюпринта
 users_bp = Blueprint('users', __name__, url_prefix='/users')
@@ -121,36 +127,6 @@ def profile():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@users_bp.route('/<int:user_id>', methods=['DELETE'])
-@jwt_required()
-def delete_user(user_id):
-    try:
-        # Проверка прав
-        current_user_id = get_jwt_identity()
-        admin = UserDAL.get_user_by_id(current_user_id)
-
-        if not admin or admin.get('role_id') != 3:
-            return jsonify({'error': 'Только администратор может удалять пользователей'}), 403
-
-        # Проверка что пользователь не удаляет себя
-        if current_user_id == user_id:
-            return jsonify({'error': 'Нельзя удалить самого себя'}), 400
-
-        # Проверка существования пользователя
-        if not UserDAL.user_exists_by_id(user_id):
-            return jsonify({'error': 'Пользователь не найден'}), 404
-
-        # Удаление пользователя
-        if UserDAL.delete_user_by_id(user_id):
-            logger.info(f"Admin {admin['login']} deleted user ID {user_id}")
-            return jsonify({'message': 'Пользователь успешно удалён'}), 200
-
-        return jsonify({'error': 'Ошибка при удалении'}), 500
-
-    except Exception as e:
-        logger.error(f"Error deleting user ID {user_id}: {e}")
-        return jsonify({'error': 'Внутренняя ошибка сервера'}), 500
-
 
 @users_bp.route('/<int:user_id>', methods=['PATCH'])
 @jwt_required()
@@ -236,4 +212,77 @@ def update_schedule(user_id):
 
     except Exception as e:
         logger.error(f"Error updating schedule: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@users_bp.route('/<int:user_id>/credentials', methods=['GET'])
+@jwt_required()
+def get_user_credentials(user_id: int):
+    try:
+        current_user_id = get_jwt_identity()
+        user = UserDAL.get_user_by_id(current_user_id)
+
+        # Проверяем, что текущий пользователь — менеджер с user_id = 3
+        if not user or user['role_id'] != 3:
+            return jsonify({'error': 'Access denied'}), 403
+
+        # Получаем данные пользователя
+        credentials = UserDAL.get_user_login_and_password_by_id(user_id)
+
+        if isinstance(credentials, str):
+            if credentials == "User not found":
+                return jsonify({'error': 'User not found'}), 404
+            return jsonify({'error': credentials}), 500
+
+        return jsonify({
+            'user_id': user_id,
+            'login': credentials['login'],
+            'password': credentials['passw']
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error fetching user credentials: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+@users_bp.route('/<int:user_id>', methods=['DELETE'])
+@jwt_required()
+def delete_user(user_id: int):
+    try:
+        current_user_id = get_jwt_identity()
+        current_user = UserDAL.get_user_by_id(current_user_id)
+        # Только админ (role_id=3) может удалять пользователей
+        if not current_user or current_user['role_id'] != 3 or int(current_user_id) == user_id:
+            return jsonify({'error': 'Access denied'}), 403
+
+        # Получаем данные удаляемого пользователя
+        target_user = UserDAL.get_user_by_id(user_id)
+        if not target_user:
+            return jsonify({'error': 'User not found'}), 404
+
+        role_id = target_user['role_id']
+
+        # Обнуляем все ссылки на пользователя
+        RequestDAL.nullify_engineer_id_in_requests(user_id)
+        RequestDAL.nullify_operator_id_in_requests(user_id)
+        RequestHistoryDAL.nullify_changer_id_in_request_history(user_id)
+
+        # Если пользователь — инженер
+        if role_id == 1:
+            BalanceHistoryDAL.delete_balance_history_by_engineer(user_id)
+            EngineerProfileDAL.delete_engineer_profile(user_id)
+
+        # Если пользователь — менеджер
+        elif role_id == 2:
+            BalanceHistoryDAL.nullify_admin_id_in_balance_history(user_id)
+
+        # Удаляем самого пользователя
+        UserDAL.delete_user(user_id)
+
+        return jsonify({
+            'message': 'User deleted successfully',
+            'user_id': user_id
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error deleting user: {e}")
         return jsonify({'error': 'Internal server error'}), 500

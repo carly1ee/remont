@@ -529,3 +529,37 @@ class RequestDAL:
         except Exception as e:
             logger.error(f"Error fetching requests for engineer {engineer_id}: {e}")
             return "Internal server error"
+
+    # dal/request.py
+
+    @staticmethod
+    def nullify_engineer_id_in_requests(engineer_id: int):
+        """
+        Обнуляет engineer_id у всех заявок, где он был назначен
+        """
+        try:
+            with DatabaseManager.get_cursor() as cursor:
+                cursor.execute("""
+                    UPDATE request
+                    SET engineer_id = NULL
+                    WHERE engineer_id = %s;
+                """, (engineer_id,))
+        except Exception as e:
+            logger.error(f"Error nullifying engineer_id for {engineer_id}: {e}")
+            return "Internal server error"
+
+    @staticmethod
+    def nullify_operator_id_in_requests(operator_id: int):
+        """
+        Обнуляет operator_id у всех заявок, созданных этим оператором
+        """
+        try:
+            with DatabaseManager.get_cursor() as cursor:
+                cursor.execute("""
+                    UPDATE request
+                    SET operator_id = NULL
+                    WHERE operator_id = %s;
+                """, (operator_id,))
+        except Exception as e:
+            logger.error(f"Error nullifying operator_id for {operator_id}: {e}")
+            return "Internal server error"

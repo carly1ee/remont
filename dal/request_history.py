@@ -25,3 +25,19 @@ class RequestHistoryDAL:
         except Exception as e:
             logger.error(f"Error fetching history for request {request_id}: {e}")
             return []
+
+    @staticmethod
+    def nullify_changer_id_in_request_history(changer_id: int):
+        """
+        Обнуляет changer_id у всех записей в истории заявок, где он был указан
+        """
+        try:
+            with DatabaseManager.get_cursor() as cursor:
+                cursor.execute("""
+                    UPDATE request_history
+                    SET changer_id = NULL
+                    WHERE changer_id = %s;
+                """, (changer_id,))
+        except Exception as e:
+            logger.error(f"Error nullifying changer_id in request_history: {e}")
+            return "Internal server error"

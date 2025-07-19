@@ -146,3 +146,16 @@ class EngineerProfileDAL:
         except Exception as e:
             logger.error(f"Error fetching balance for engineer {engineer_user_id}: {e}")
             return "Internal server error"
+
+    @staticmethod
+    def delete_engineer_profile(engineer_id: int) -> str:
+        """
+        Удаляет профиль инженера
+        """
+        try:
+            with DatabaseManager.get_cursor() as cursor:
+                cursor.execute("DELETE FROM engineer_profile WHERE user_id = %s", (engineer_id,))
+                return "OK"
+        except Exception as e:
+            logger.error(f"Error deleting engineer profile: {e}")
+            return "Internal server error"

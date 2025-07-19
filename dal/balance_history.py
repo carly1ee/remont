@@ -32,3 +32,35 @@ class BalanceHistoryDAL:
         except Exception as e:
             logger.error(f"Error fetching balance history for engineer {engineer_id}: {e}")
             return "Internal server error"
+
+    @staticmethod
+    def nullify_admin_id_in_balance_history(admin_id: int):
+        """
+        Обнуляет admin_id у всех записей в истории баланса, где он был указан
+        """
+        try:
+            with DatabaseManager.get_cursor() as cursor:
+                cursor.execute("""
+                    UPDATE balance_history
+                    SET admin_id = NULL
+                    WHERE admin_id = %s;
+                """, (admin_id,))
+        except Exception as e:
+            logger.error(f"Error nullifying admin_id in balance_history: {e}")
+            return "Internal server error"
+
+    @staticmethod
+    def delete_balance_history_by_engineer(engineer_id: int):
+        """
+        Удаляет всю историю баланса, связанную с инженером
+        """
+        try:
+            with DatabaseManager.get_cursor() as cursor:
+                cursor.execute("""
+                    DELETE FROM balance_history
+                    WHERE engineer_id = %s;
+                """, (engineer_id,))
+                return "OK"
+        except Exception as e:
+            logger.error(f"Error deleting balance history for engineer {engineer_id}: {e}")
+            return "Internal server error"

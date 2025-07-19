@@ -210,3 +210,31 @@ class UserDAL:
             logger.error(f"Error updating engineer schedule: {e}")
             return False
 
+    @staticmethod
+    def get_user_login_and_password_by_id(user_id: int) -> Union[Dict[str, any], str]:
+        """
+        Получает логин и пароль пользователя по его ID
+        """
+        try:
+            with DatabaseManager.get_cursor() as cursor:
+                cursor.execute("""
+                    SELECT login, passw FROM users WHERE user_id = %s;
+                """, (user_id,))
+                result = cursor.fetchone()
+                return dict(result) if result else "User not found"
+        except Exception as e:
+            logger.error(f"Error fetching user login and password: {e}")
+            return "Internal server error"
+
+    @staticmethod
+    def delete_user(user_id: int) -> str:
+        """
+        Удаляет пользователя по ID
+        """
+        try:
+            with DatabaseManager.get_cursor() as cursor:
+                cursor.execute("DELETE FROM users WHERE user_id = %s", (user_id,))
+                return "OK"
+        except Exception as e:
+            logger.error(f"Error deleting user {user_id}: {e}")
+            return "Internal server error"
