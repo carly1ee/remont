@@ -100,8 +100,8 @@ class RequestDAL:
                     FROM request
                     WHERE engineer_id = %s
                       AND status_id = ANY(%s)
-                      AND DATE(creation_date) = DATE(%s)
-                    ORDER BY creation_date DESC;
+                      AND DATE(assigned_time) = DATE(%s)
+                    ORDER BY assigned_time DESC;
                 """
                 cursor.execute(query, (
                     engineer_id,
@@ -196,7 +196,7 @@ class RequestDAL:
                     allowed_fields = list(updates.keys())
                 elif role_id == 1:  # Инженер — только временные поля
                     allowed_fields = [f for f in updates.keys()
-                                      if f in ['assigned_time', 'in_works_time', 'done_time']]
+                                      if f in ['assigned_time', 'in_works_time', 'done_time', 'status_id']]
                 else:
                     return "Access denied"
 
@@ -456,43 +456,70 @@ class RequestDAL:
             return "Internal server error"
 
     @staticmethod
-    def get_engineers_stats_with_balance_and_requests() -> Union[List[Dict], str]:
+    def get_engineers_stats_with_balance_and_requests(page: int, per_page: int) -> Union[List[Dict], str]:
         """
-        Получает статистику по всем инженерам за текущий месяц:
+        Получает статистику по всем инженерам за текущий месяц с пагинацией:
         - баланс
-        - количество активных заявок (статусы 2 и 4)
+        - количество активных заявок (статусы 2 и 3)
         - количество завершённых заявок за месяц (статус 4)
         """
         try:
             with DatabaseManager.get_cursor() as cursor:
-                # Определяем начало месяца
                 today = datetime.today()
                 start_of_month = datetime(today.year, today.month, 1)
+                current_time = datetime.now()
+
+                # Вычисляем OFFSET на основе page и per_page
+                offset = (page - 1) * per_page
 
                 query = """
                     SELECT 
                         u.user_id,
                         u.name AS engineer_name,
-
                         COALESCE(ep.balance, 0) AS balance,
-
-                        COUNT(r_all.request_id) FILTER (WHERE r_all.status_id IN (2, 4)) AS active_requests,
-
-                        COUNT(r_done.request_id) FILTER (WHERE r_done.status_id = 4 AND r_done.done_time >= %s) AS completed_in_month
+                        COUNT(DISTINCT r_active.request_id) FILTER (WHERE r_active.status_id IN (2, 3)) AS active_requests,
+                        COUNT(DISTINCT r_completed.request_id) FILTER (WHERE r_completed.status_id = 4 AND r_completed.done_time >= %s) AS completed_in_month
                     FROM users u
                     JOIN roles r ON u.role_id = r.role_id AND r.role = 'engineer'
                     LEFT JOIN engineer_profile ep ON u.user_id = ep.user_id
-                    LEFT JOIN request r_all ON r_all.engineer_id = u.user_id
-                    LEFT JOIN request r_done ON r_done.engineer_id = u.user_id
-                    GROUP BY u.user_id, ep.balance
-                    ORDER BY u.user_id;
+                    LEFT JOIN request r_active ON r_active.engineer_id = u.user_id 
+                        AND r_active.status_id IN (2, 3)
+                        AND (r_active.assigned_time IS NULL OR r_active.assigned_time <= %s)
+                    LEFT JOIN request r_completed ON r_completed.engineer_id = u.user_id 
+                        AND r_completed.status_id = 4 
+                        AND r_completed.done_time >= %s
+                    GROUP BY u.user_id, u.name, ep.balance
+                    ORDER BY u.user_id
+                    LIMIT %s OFFSET %s;
                 """
-                cursor.execute(query, (start_of_month,))
-                return cursor.fetchall()
+                cursor.execute(query, (start_of_month, current_time, start_of_month, per_page, offset))
+                return [dict(row) for row in cursor.fetchall()]
 
         except Exception as e:
             logger.error(f"Error fetching engineers stats: {e}")
             return "Internal server error"
+
+    @staticmethod
+    def get_total_engineers_count() -> int:
+        """
+        Возвращает общее количество инженеров.
+        """
+        try:
+            with DatabaseManager.get_cursor() as cursor:
+                query = """
+                    SELECT COUNT(user_id) AS count
+                    FROM users
+                    WHERE role_id = 1;
+                """
+                cursor.execute(query)
+                res = cursor.fetchone()
+                if res is None:
+                    return 0
+                count = res['count']  # Доступ к значению по ключу 'count'
+                return count
+        except Exception as e:
+            logger.error(f"Error fetching total engineers count: {type(e).__name__}: {str(e)}")
+            return 0  # Возвращаем 0 в случае ошибки
 
     @staticmethod
     def get_assigned_and_in_works_requests(engineer_id: int) -> Union[List[Dict], str]:

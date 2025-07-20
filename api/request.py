@@ -367,7 +367,7 @@ def get_engineers_stats():
         current_user_id = get_jwt_identity()
         user = UserDAL.get_user_by_id(current_user_id)
 
-        if not user or user['role_id'] != 3:  # менеджер или оператор
+        if not user or user['role_id'] not in [2, 3]:  # менеджер или оператор
             return jsonify({'error': 'Access denied'}), 403
 
         data = request.get_json(silent=True)
@@ -383,16 +383,14 @@ def get_engineers_stats():
         if not isinstance(per_page, int) or per_page < 1 or per_page > 100:
             per_page = 10
 
-        # Получаем данные из БД
-        result = RequestDAL.get_engineers_stats_with_balance_and_requests()
+        # Получаем пагинрованные данные
+        result = RequestDAL.get_engineers_stats_with_balance_and_requests(page, per_page)
 
         if isinstance(result, str):
             return jsonify({'error': result}), 500
 
-        total = len(result)
-        start = (page - 1) * per_page
-        end = start + per_page
-        paginated_result = result[start:end]
+        # Вычисляем общее количество записей отдельным запросом
+        total = RequestDAL.get_total_engineers_count()
 
         return jsonify({
             'manager_name': user['name'],
@@ -405,7 +403,7 @@ def get_engineers_stats():
                 'per_page': per_page
             },
             'total': total,
-            'engineers': paginated_result
+            'engineers': result
         }), 200
 
     except Exception as e:
