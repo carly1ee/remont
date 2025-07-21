@@ -1,0 +1,265 @@
+<div class="request-management-wrapper">
+  <div class="request-management">
+    <div class="header">
+      <h2>Управление заявками</h2>
+    </div>
+
+    <div class="filters">
+      <select [(ngModel)]="selectedEngineerId">
+        <option [ngValue]="null">Все инженеры</option>
+        <option *ngFor="let eng of allEngineers" [ngValue]="eng.user_id">
+          {{ eng.engineer_name }}
+        </option>
+      </select>
+
+      <select [(ngModel)]="selectedStatusId">
+        <option [ngValue]="null">Все статусы</option>
+        <option [ngValue]="1">Создана</option>
+        <option [ngValue]="2">Назначена</option>
+        <option [ngValue]="3">В работе</option>
+        <option [ngValue]="4">Завершеные</option>
+      </select>
+
+      <input type="date" [(ngModel)]="startDate" title="Дата от" />
+      <input type="date" [(ngModel)]="endDate" title="Дата до" />
+
+      <button class="btn btn-apply" (click)="onApplyFilters()">
+        <i data-lucide="filter"></i>
+        Применить
+      </button>
+    </div>
+
+    <div class="requests-list">
+      <div
+        class="request-item"
+        *ngFor="let req of managerService.requests$ | async"
+      >
+        <div
+          class="request-content"
+          *ngIf="editingRequestId !== req.request_id"
+        >
+          <div class="request-info">
+            <div class="request-title">
+              <h3 [ngStyle]="{ color: !req.engineer_name ? 'red' : '' }">
+                {{ req.engineer_name || 'Инженер не выбран' }}
+              </h3>
+              <span [ngSwitch]="req.status_id">
+                <span *ngSwitchCase="1" class="status status-new">Создана</span>
+                <span *ngSwitchCase="2" class="status status-assigned"
+                  >Назначена</span
+                >
+                <span *ngSwitchCase="3" class="status status-in-progress"
+                  >В работе</span
+                >
+                <span *ngSwitchCase="4" class="status status-completed"
+                  >Выполнена</span
+                >
+                <span *ngSwitchDefault class="status status-unknown"
+                  >Неизвестно</span
+                >
+              </span>
+            </div>
+            <div
+              class="request-card"
+              [class.opened]="openedDetailsId === req.request_id"
+            >
+              <div class="request-info">
+                <p class="description">Техника: {{ req.equipment }}</p>
+                <p
+                  class="description"
+                  *ngIf="openedDetailsId === req.request_id"
+                >
+                  Заказчик: {{ req.customer_name }}
+                </p>
+                <p class="details">Адрес: {{ req.address}}</p>
+                <p class="details" *ngIf="openedDetailsId === req.request_id">
+                  Телефон: {{ req.phone }}
+                </p>
+                <div
+                  class="request-details"
+                  *ngIf="openedDetailsId === req.request_id"
+                >
+                  <p class="details">Описание: {{ req.description }}</p>
+                </div>
+              </div>
+
+              <div class="time-info">
+                <p
+                  class="details"
+                  *ngIf="!req.done_time && !req.in_works_time && !req.assigned_time || openedDetailsId === req.request_id"
+                >
+                  Создано: {{ formatDate(req.creation_date) }}
+                </p>
+                <p
+                  class="details"
+                  *ngIf="!req.done_time && !req.in_works_time && req.assigned_time || openedDetailsId === req.request_id"
+                >
+                  Запланировано {{formatDate(req.assigned_time)}}
+                </p>
+                <p
+                  class="details"
+                  *ngIf="!req.done_time && req.in_works_time || openedDetailsId === req.request_id"
+                >
+                  Начал работать: {{ formatDate(req.in_works_time) }}
+                </p>
+                <p
+                  class="details"
+                  *ngIf="req.done_time || openedDetailsId === req.request_id"
+                >
+                  Выполнил: {{ formatDate(req.done_time)}}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="request-actions">
+            <ng-container *ngIf="req.status_id !== 4">
+              <select
+                class="btn btn-5"
+                (change)="onEngineerChange($event, req)"
+              >
+                <option disabled selected>Назначить инженера</option>
+                <option *ngFor="let eng of allEngineers" [value]="eng.user_id">
+                  {{ eng.engineer_name }}
+                </option>
+              </select>
+            </ng-container>
+            <button class="btn btn-success" (click)="startEditing(req)">
+              Изменить
+            </button>
+            <button
+              class="btn btn-secondary"
+              (click)="toggleDetails(req.request_id)"
+            >
+              Детали
+            </button>
+            <button
+              *ngIf="!req.done_time && req.in_works_time || openedDetailsId === req.request_id"
+              class="btn btn-apply"
+              (click)="toggleHistory(req.request_id)"
+            >
+              История изменения
+            </button>
+            <button
+              *ngIf="openedDetailsId === req.request_id"
+              class="btn btn-red"
+              (click)="deleteRequest(req.request_id)"
+            >
+              Удалить
+            </button>
+          </div>
+        </div>
+        <div *ngIf="editingRequestId === req.request_id" class="edit-form">
+          <h3>
+            Редактирование заявки инженера {{ editableRequest?.engineer_name }}
+          </h3>
+          <div class="edit-form__list">
+            <div class="edit-form__item">
+              <label>
+                <div class="description">Заказчик:</div>
+                <input
+                  type="text"
+                  [(ngModel)]="editableRequest.customer_name"
+                />
+              </label>
+
+              <label>
+                <div class="description">Оборудование:</div>
+                <input type="text" [(ngModel)]="editableRequest.equipment" />
+              </label>
+
+              <label>
+                <div class="description">Адрес:</div>
+                <input type="text" [(ngModel)]="editableRequest.address" />
+              </label>
+
+              <label>
+                <div class="description">Телефон:</div>
+                <input type="text" [(ngModel)]="editableRequest.phone" />
+              </label>
+
+              <label>
+                <div class="description">Описание:</div>
+
+                <textarea [(ngModel)]="editableRequest.description"></textarea>
+              </label>
+            </div>
+            <div class="edit-form__item">
+              <label>
+                <div class="description">Статус</div>
+                <input type="text" [(ngModel)]="editableRequest.status_id" />
+              </label>
+              <label>
+                <div class="description">Время создания</div>
+                <input
+                  type="text"
+                  [(ngModel)]="editableRequest.creation_date "
+                />
+              </label>
+              <label>
+                <div class="description">Запланированное время</div>
+                <input
+                  type="text"
+                  [(ngModel)]="editableRequest.assigned_time "
+                />
+              </label>
+              <label>
+                <div class="description">Время начала работы</div>
+                <input
+                  type="text"
+                  [(ngModel)]="editableRequest.in_works_time "
+                />
+              </label>
+              <label>
+                <div class="description">Время выполнения</div>
+                <input type="text" [(ngModel)]="editableRequest.done_time " />
+              </label>
+            </div>
+          </div>
+
+          <div class="btns">
+            <button class="status status-save" (click)="saveEdit()">
+              Сохранить
+            </button>
+            <button class="status status-cancel" (click)="cancelEdit()">
+              Отмена
+            </button>
+          </div>
+        </div>
+        <div *ngIf="openedHistoryId === req.request_id" class="history-block">
+          <div *ngIf="loadingHistoryId === req.request_id">
+            Загрузка истории...
+          </div>
+          <div
+            *ngIf="!loadingHistoryId && historyMap[req.request_id]?.length === 0"
+          >
+            Изменений не было.
+          </div>
+          <ul
+            *ngIf="!loadingHistoryId && historyMap[req.request_id]!.length > 0"
+          >
+            <div
+              *ngFor="let change of historyMap[req.request_id]"
+              style="margin-top: 5px"
+            >
+              <b>{{ change.changer_name }}</b> изменил поле
+              <strong>{{ getReadableFieldName(change.field_name) }}</strong>.
+              Было: "{{ change.old_value }}" → Стало: "{{ change.new_value
+              }}"<br />
+              <small>{{ formatDate(change.changed_at) }}</small>
+            </div>
+          </ul>
+        </div>
+      </div>
+
+      <button
+        (click)="loadMore()"
+        *ngIf="(managerService.requests$ | async)!.length < totalRequests && !isLoading"
+        class="btn btn-success"
+      >
+        Показать ещё
+      </button>
+
+      <p *ngIf="isLoading">Загрузка...</p>
+    </div>
+  </div>
+</div>

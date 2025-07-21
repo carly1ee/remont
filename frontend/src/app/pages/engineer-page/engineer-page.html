@@ -1,0 +1,224 @@
+<app-navigation></app-navigation>
+<div id="engineer-dashboard" class="hidden">
+  <div class="dashboard-container">
+    <div class="dashboard-header">
+      <h1 class="dashboard-title">Кабинет инженера</h1>
+      <p class="dashboard-subtitle">Ваши заявки и календарь работ</p>
+    </div>
+
+    <div class="stats">
+      <div class="stat-card blue">
+        <div class="stat-content">
+          <div>
+            <p class="stat-label">Активные заявки</p>
+            <p class="stat-value">{{ activeRequests }}</p>
+          </div>
+        </div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-content">
+          <div>
+            <p class="stat-label">Завершено за месяц</p>
+            <p class="stat-value">{{ completedThisMonth }}</p>
+          </div>
+        </div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-content">
+          <div>
+            <p class="stat-label">Баланс</p>
+            <p class="stat-value">{{ balance }} ₽</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="card1">
+        <div class="card1-header">
+          <h2>Мои заявки</h2>
+        </div>
+        <div class="card1-body">
+          <div *ngFor="let request of requests" class="request">
+            <div class="request-header">
+              <h3>{{ request.customer_name }}</h3>
+              <span
+                class="status"
+                [ngClass]="{
+                  'btn success': request.status_id === 4
+                }"
+              >
+                {{ request.status_id === 1 ? 'Принято' : request.status_id === 2
+                ? 'Назначено' : request.status_id === 3 ? 'В работе' :
+                'Выполнено' }}
+              </span>
+            </div>
+
+            <div class="request-text">
+              <div class="request-text1">
+                <p class="desc">{{ request.equipment }}</p>
+                <p class="meta">Адрес: {{ request.address }}</p>
+                <p class="meta">Тел: {{ request.phone }}</p>
+              </div>
+              <div class="timeline">
+                <div class="timestamp" *ngIf="request.assigned_time">
+                  <i data-lucide="user-check"></i>
+                  Запланировано: {{request.assigned_time |
+                  date:'dd.MM_HH:mm':'UTC'}}
+                </div>
+
+                <div class="timestamp" *ngIf="request.in_works_time">
+                  <i data-lucide="clock"></i>
+                  Начал работать: {{request.in_works_time |
+                  date:'dd.MM_HH:mm':'UTC'}}
+                </div>
+              </div>
+            </div>
+
+            <div class="actions">
+              <!-- Статус 1: показать кнопку "Начал работать" -->
+              <button
+                class="btn primary"
+                *ngIf="request.status_id === 2"
+                (click)="markInProgress(request)"
+              >
+                Отметить начал работать
+              </button>
+              <!-- Статус 2: показать кнопку "Выполнено" -->
+              <button
+                class="btn success"
+                *ngIf="request.status_id === 3"
+                (click)="markDone(request)"
+              >
+                Отметить выполненной
+              </button>
+
+              <button
+                class="btn secondary primary"
+                (click)="toggleDetails(request.request_id)"
+              >
+                {{ expandedRequestId === request.request_id ? 'Скрыть' :
+                'Подробнее' }}
+              </button>
+            </div>
+
+            <div
+              class="description-block"
+              *ngIf="expandedRequestId === request.request_id"
+            >
+              <strong>Описание:</strong>
+              <p>{{ request.description }}</p>
+            </div>
+          </div>
+
+          <div class="history-section">
+            <h3 class="history-title">История выполненных заявок</h3>
+            <div class="history-list">
+              <div
+                class="history-item"
+                *ngFor="let request of completedRequests"
+              >
+                <div class="history-header">
+                  <span class="history-id"> {{ request.customer_name }} </span>
+                  <span class="history-date">
+                    {{ request.done_time | date: 'dd.MM.yyyy - HH:mm':'UTC' }}
+                  </span>
+                </div>
+                <p class="history-desc">{{ request.equipment }}</p>
+
+                <button
+                  (click)="toggleCompletedDetails(request.request_id)"
+                  class="btn secondary primary"
+                >
+                  {{ expandedCompletedRequestId === request.request_id ?
+                  'Скрыть' : 'Подробнее' }}
+                </button>
+
+                <div
+                  class="description-block"
+                  *ngIf="expandedCompletedRequestId === request.request_id"
+                >
+                  <p class="meta">Телефон: {{ request.phone }}</p>
+                  <p class="meta">Адрес: {{ request.address }}</p>
+                  <p class="meta">Описание: {{ request.description }}</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="loadComplete">
+              <button
+                *ngIf="completedRequests.length < completedTotal && !isLoadingCompleted"
+                (click)="loadCompletedRequests()"
+                class="btn success show-more-btn"
+              >
+                Показать ещё
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Календарь -->
+      <div class="card">
+        <div class="card-header">
+          <h2>Календарь работ</h2>
+        </div>
+        <div class="card-body">
+          <div class="calendar" #calendarScroll>
+            <div class="calendar__scroll">
+              <div
+                class="calendar__item"
+                *ngFor="let day of days"
+                [attr.id]="isToday(day.date) ? 'today' : null"
+                [class.today]="isToday(day.date)"
+                [class.selected]="isSameDay(day.date, selectedDate)"
+                (click)="onSelectDay(day.date)"
+              >
+                <div class="weekDay">{{ day.weekDay }}</div>
+                <div class="date">{{ day.date | date: 'dd.MM' }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            *ngIf="eventsForSelectedDay.length === 0"
+            class="calendar-events"
+          >
+            <h3>{{ selectedDate | date: 'd MMMM' }}</h3>
+            <p class="event green">Задачи отсутствуют.</p>
+          </div>
+
+          <div class="calendar-events" *ngIf="eventsForSelectedDay.length > 0">
+            <h3>{{ selectedDate | date: 'd MMMM' }}</h3>
+
+            <div *ngFor="let event of eventsForSelectedDay" class="event blue">
+              <div>
+                <span class="dot"></span>
+                {{ event.assigned_time | date: 'HH:mm':'UTC' }} — {{
+                event.equipment }}
+              </div>
+
+              <p class="text-xs text-gray-400 mt-2">{{ event.address }}</p>
+              <button
+                class="btn secondary primary"
+                (click)="toggleEventDetails(event.request_id)"
+              >
+                {{ expandedEventId === event.request_id ? 'Скрыть' : 'Подробнее'
+                }}
+              </button>
+
+              <div
+                *ngIf="expandedEventId === event.request_id"
+                class="description-block"
+              >
+                <p class="meta">Заказчик: {{ event.customer_name }}</p>
+                <p class="meta">Телефон: {{ event.phone }}</p>
+                <p class="meta">Описание: {{ event.description }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

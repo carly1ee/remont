@@ -1,0 +1,102 @@
+.card {
+  background-color: #fff;
+  border-radius: 0.5rem; // 8px
+  padding: 1.5rem; // 24px
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  margin-bottom: 2rem; // 32px
+  max-width: 100%;
+
+  &__title {
+    font-size: 1.25rem; // 20px
+    font-weight: 600;
+    margin-bottom: 1rem; // 16px
+  }
+
+  &__grid {
+    display: grid;
+    gap: 1rem; // 16px
+
+    &--3cols {
+      grid-template-columns: 1fr;
+
+      @media (min-width: 768px) {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    &--2cols {
+      margin-top: 1rem; // 16px
+      grid-template-columns: 1fr;
+
+      @media (min-width: 768px) {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  }
+}
+
+.input {
+  padding: 0.5rem 1rem; // 8px 16px
+  border: 1px solid #ccc;
+  border-radius: 0.5rem; // 8px
+  font-size: 1rem;
+  outline-offset: 2px;
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px #3b82f6; // голубой #3b82f6 - close to tailwind's blue-500
+    border-color: #3b82f6;
+  }
+}
+
+.textarea {
+  width: calc(100% - 2rem);
+  margin-top: 1rem; // 16px
+  padding: 0.5rem 1rem;
+  border: 1px solid #ccc;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  resize: vertical;
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px #3b82f6;
+    border-color: #3b82f6;
+  }
+}
+
+.assign-engineer {
+  margin-top: 1rem;
+
+  &__label {
+    display: block;
+    font-size: 0.875rem; // 14px
+    font-weight: 500;
+    color: #4b5563; // gray-700 from tailwind
+    margin-bottom: 0.5rem; // 8px
+  }
+}
+
+.input--full {
+  width: 100%;
+
+  @media (min-width: 768px) {
+    width: auto;
+  }
+}
+
+.btn {
+  margin-top: 1rem; // 16px
+  background-color: #2563eb; // blue-600
+  color: white;
+  padding: 0.5rem 1.5rem; // 8px 24px
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+
+  &:hover {
+    background-color: #1e40af; // blue-700
+  }
+}

@@ -1,0 +1,118 @@
+/* Контейнер, центрирование и фон */
+.container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea, #764ba2); /* пример градиента */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+}
+
+/* Карточка */
+.card {
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 2rem;
+  width: calc(100% - 4rem);
+  max-width: 400px;
+}
+
+/* Заголовок */
+.header {
+  text-align: center;
+  margin-bottom: 2rem;
+
+  .logo-title {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+
+    .icon-wrench {
+      width: 7rem;
+      height: 7rem;
+      color: #2563eb; /* синий */
+      /* Иконку нужно добавить через библиотеку или svg */
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #1f2937; /* темно-серый */
+      padding: 0 1rem;
+    }
+  }
+
+  p {
+    color: #4b5563; /* серый */
+  }
+}
+
+/* Форма */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+
+    label {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #374151; /* темно-серый */
+      margin-bottom: 0.5rem;
+    }
+
+    input {
+      padding: 0.75rem 1rem;
+      border: 1px solid #d1d5db;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+
+      &:focus {
+        outline: none;
+        border-color: #3b82f6; /* синий */
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+      }
+    }
+  }
+
+  .buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    button {
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.2s;
+
+      &:hover {
+        filter: brightness(0.9);
+      }
+
+      &:nth-child(1) {
+        background-color: #2563eb; /* синий */
+      }
+      &:nth-child(2) {
+        background-color: #16a34a; /* зелёный */
+      }
+      &:nth-child(3) {
+        background-color: #7c3aed; /* фиолетовый */
+      }
+    }
+  }
+
+  .error {
+    margin: 0;
+    color: red;
+  }
+}

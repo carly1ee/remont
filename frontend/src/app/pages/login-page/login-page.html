@@ -1,0 +1,43 @@
+<div id="login-page" class="container">
+  <div class="card">
+    <div class="header">
+      <div class="logo-title">
+        <img
+          src="../../../assets/main_icon.png"
+          alt="главная иконка"
+          class="icon-wrench"
+        />
+        <h1>СервисТех</h1>
+      </div>
+      <p>Система управления ремонтом бытовой техники</p>
+    </div>
+
+    <form class="form">
+      <div class="form-group">
+        <label>Email</label>
+        <input
+          type="email"
+          [(ngModel)]="email"
+          name="email"
+          placeholder="ivan@servictech.ru"
+        />
+      </div>
+
+      <div class="form-group">
+        <label>Пароль</label>
+        <input
+          type="password"
+          [(ngModel)]="password"
+          name="password"
+          placeholder="••••••••"
+        />
+      </div>
+
+      <div class="buttons">
+        <button type="button" (click)="login()">Войти</button>
+      </div>
+
+      <p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
+    </form>
+  </div>
+</div>

@@ -1,0 +1,54 @@
+<div class="card">
+  <h2 class="card__title">Создать новую заявку</h2>
+
+  <div class="card__grid card__grid--3cols">
+    <input
+      type="text"
+      placeholder="Имя клиента"
+      class="input"
+      [(ngModel)]="clientName"
+    />
+    <input type="tel" placeholder="Телефон" class="input" [(ngModel)]="phone" />
+    <input
+      type="text"
+      placeholder="Адрес"
+      class="input"
+      [(ngModel)]="address"
+    />
+  </div>
+
+  <div class="card__grid card__grid--2cols">
+    <input
+      type="text"
+      placeholder="Оборудование"
+      class="input"
+      [(ngModel)]="techniq"
+    />
+    <input
+      type="datetime-local"
+      class="input"
+      title="Удобное время для приема"
+      [(ngModel)]="assignedTime"
+    />
+  </div>
+
+  <textarea
+    placeholder="Описание проблемы"
+    class="textarea"
+    rows="3"
+    [(ngModel)]="description"
+  ></textarea>
+
+  <div class="assign-engineer">
+    <select class="input input--full" [(ngModel)]="selectedEngineerId">
+      <option [ngValue]="null">Выберите инженера</option>
+      <option *ngFor="let engineer of engineers" [ngValue]="engineer.id">
+        {{ engineer.name }}
+      </option>
+    </select>
+  </div>
+
+  <button class="btn" (click)="createRequest()" [disabled]="isLoading">
+    Создать заявку
+  </button>
+</div>

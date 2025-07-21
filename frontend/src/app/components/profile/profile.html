@@ -1,0 +1,243 @@
+<div class="engineers-section">
+  <div class="section-title">
+    <h2>Профили инженеров и эффективность</h2>
+  </div>
+
+  <div class="engineers-grid">
+    <div class="engineer-card new-employee-card">
+      <h3>Создать нового сотрудника</h3>
+
+      <div class="form-columns">
+        <div class="form-column">
+          <div class="form-group">
+            <label for="role-select">Роль</label>
+            <select id="role-select" [(ngModel)]="newEmployee.role">
+              <option value="engineer">Инженер</option>
+              <option value="operator">Оператор</option>
+              <option value="manager">Менеджер</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="employee-name">Имя пользователя</label>
+            <input
+              id="employee-name"
+              type="text"
+              [(ngModel)]="newEmployee.name"
+              placeholder="Введите имя"
+            />
+          </div>
+        </div>
+
+        <div class="form-column">
+          <div class="form-group">
+            <label for="employee-login">Логин</label>
+            <input
+              id="employee-login"
+              type="text"
+              [(ngModel)]="newEmployee.login"
+              placeholder="Введите логин"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="employee-password">Пароль</label>
+            <input
+              id="employee-password"
+              type="password"
+              [(ngModel)]="newEmployee.password"
+              placeholder="Введите пароль"
+            />
+          </div>
+        </div>
+      </div>
+
+      <button (click)="createEmployee()" [disabled]="!canCreateEmployee()">
+        Создать
+      </button>
+    </div>
+
+    <div class="engineer-card" *ngFor="let engineer of engineers">
+      <div class="engineer-header">
+        <h4 class="engineer-name">{{ engineer.engineer_name }}</h4>
+        <button (click)="openBalanceModal(engineer)" class="balance-btn">
+          Баланс
+        </button>
+      </div>
+
+      <div class="engineer-info">
+        <p>
+          Активных заявок: {{ engineer.active_requests }}
+          <button
+            (click)="showEngineerCredentials(engineer)"
+            class="balance-btn right"
+          >
+            Логин и пароль
+          </button>
+        </p>
+        <p>Завершено за месяц: {{ engineer.completed_in_month }}</p>
+        <p>
+          Текущий баланс:
+          <span class="balance-amount"> {{ engineer.balance }} ₽ </span>
+          <button (click)="deleteUser(engineer)" class="balance-btn right">
+            Удалить
+          </button>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="load-more-wrapper" *ngIf="hasMoreEngineers">
+    <button
+      (click)="loadNextPage()"
+      [disabled]="isLoading"
+      class="load-more-btn"
+    >
+      {{ isLoading ? 'Загрузка...' : 'Показать ещё' }}
+    </button>
+  </div>
+
+  <div class="section-title">
+    <h2>Профили операторв и менеджеров</h2>
+  </div>
+
+  <div class="engineers-grid">
+    <div class="engineer-card" *ngFor="let employee of employees">
+      <div class="engineer-header">
+        <h4 class="engineer-name">{{ employee.display_name }}</h4>
+        <button
+          (click)="showEngineerCredentials(employee)"
+          class="balance-btn right"
+        >
+          Логин и пароль
+        </button>
+      </div>
+
+      <div class="engineer-info">
+        <p>
+          Роль: {{ employee.role }}
+          <button (click)="deleteUser(employee)" class="balance-btn right">
+            Удалить
+          </button>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="balance-modal" [class.show]="isCredentialsModalOpen">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Данные инженера</h3>
+      <button (click)="closeEngineerCredentials()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p><strong>Имя:</strong> {{ selectedEngineer?.engineer_name }}</p>
+      <p>
+        <strong>Логин:</strong> {{ engineerCredentials?.login || 'Загрузка...'
+        }}
+      </p>
+      <p>
+        <strong>Пароль:</strong> {{ engineerCredentials?.password ||
+        'Загрузка...' }}
+      </p>
+    </div>
+  </div>
+</div>
+
+<div
+  id="balance-modal"
+  class="balance-modal"
+  [class.show]="isBalanceModalOpen"
+  (click)="closeBalanceModal()"
+>
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Управление балансом</h3>
+      <button (click)="closeBalanceModal()" class="close-button">
+        <i data-lucide="x" class="icon"></i>
+      </button>
+    </div>
+
+    <div class="engineer-info">
+      <div class="engineer-details">
+        <div id="modal-engineer-avatar" class="engineer-avatar">
+          <span>И</span>
+        </div>
+        <div class="engineer-balance-name">
+          <div class="modal-engineer-name">
+            {{ selectedEngineer?.engineer_name }}
+          </div>
+          <div>
+            Текущий баланс:
+            <span id="modal-current-balance"
+              >{{ selectedEngineer?.balance }} ₽</span
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-group">
+        <label>Тип операции</label>
+        <div class="radio-group">
+          <label>
+            <input
+              type="radio"
+              name="operation"
+              value="add"
+              [(ngModel)]="operationType"
+            />
+            <span class="green-text">Пополнение</span>
+          </label>
+          <label>
+            <input
+              type="radio"
+              name="operation"
+              value="subtract"
+              [(ngModel)]="operationType"
+            />
+            <span class="red-text">Списание</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Сумма (₽)</label>
+        <input
+          type="number"
+          id="balance-amount"
+          placeholder="Введите сумму"
+          [(ngModel)]="amount"
+          (focus)="clearAmountIfZero()"
+        />
+      </div>
+
+      <!-- <div class="form-group">
+        <label>Описание операции</label>
+        <textarea
+          id="balance-description"
+          rows="3"
+          placeholder="Укажите причину изменения баланса"
+        ></textarea>
+      </div> -->
+    </div>
+
+    <!-- <div class="history-section">
+      <h4>История операций</h4>
+      <div id="balance-history" class="history-list">
+        История будет добавляться динамически
+      </div>
+    </div> -->
+
+    <div class="modal-actions">
+      <button (click)="closeBalanceModal()" class="cancel-button">
+        Отмена
+      </button>
+      <button (click)="adjustBalance()" class="apply-button">
+        Применить изменения
+      </button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,29 @@
+<nav class="navbar" id="navbar">
+  <div class="container">
+    <div class="navbar-content">
+      <div class="logo-section hide-on-mobile">
+        <div class="icon-wrapper">
+          <img
+            src="../../../assets/main_icon.png"
+            alt="Логотип"
+            class="icon-wrench"
+          />
+        </div>
+        <span class="logo-text">СервисТех</span>
+      </div>
+
+      <div class="user-section">
+        <div class="user-info" id="user-info">
+          <div class="user-avatar hide-on-mobile" id="user-avatar">
+            {{ userAvatarLetter }}
+          </div>
+          <span class="user-name" id="user-name">{{ userName }}</span>
+          <span class="user-role" id="user-role">{{ userRole }}</span>
+        </div>
+        <button (click)="showLogin()" class="logout-button">
+          <img src="../../../assets/exit.png" alt="иконка выхода" />
+        </button>
+      </div>
+    </div>
+  </div>
+</nav>
