@@ -90,7 +90,7 @@ def my_requests():
         # Фильтруем по status_id = 2 и 3
         requests = RequestDAL.get_requests_by_engineer(
             engineer_id=current_user_id,
-            status_ids=[2, 3],
+            status_ids=[2, 3, 4],
             date_filter=date_filter
         )
 
@@ -367,7 +367,7 @@ def get_engineers_stats():
         current_user_id = get_jwt_identity()
         user = UserDAL.get_user_by_id(current_user_id)
 
-        if not user or user['role_id'] not in [2, 3]:  # менеджер или оператор
+        if not user or user['role_id'] not in [1, 3]:  # менеджер или инженер
             return jsonify({'error': 'Access denied'}), 403
 
         data = request.get_json(silent=True)
