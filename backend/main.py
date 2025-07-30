@@ -14,13 +14,18 @@ app.config['JWT_SECRET_KEY'] = config.SECRET_KEY
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = False  # Для теста
 
 
-CORS(app)
+CORS(app, origins=["http://localhost:4200"])
 
 jwt = JWTManager(app)
 DatabaseManager.initialize(config)
 
 # Регистрация блюпринтов
 app.register_blueprint(main_blueprint)
+
+@app.route('/')
+def root():
+    return 'Backend работает должным образом.'
+
 
 
 if __name__ == '__main__':

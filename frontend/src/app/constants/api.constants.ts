@@ -1,5 +1,5 @@
-// const BASE_URL = 'http://192.168.31.248:5000';
-const BASE_URL = 'https://66cd233d1a3c.ngrok-free.app';
+//const BASE_URL = 'http://192.168.31.248:5000';
+const BASE_URL = 'http://localhost:5000/api';
 
 export const API = {
   LOGIN: `${BASE_URL}/users/login`, // Авторизация пользователя

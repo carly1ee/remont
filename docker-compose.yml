@@ -1,8 +1,8 @@
-version: '3.8'  # Версия формата docker-compose файла
-
 services:
   app:
     build: .  # Собираем образ из Dockerfile в текущей директории
+    env_file:
+      - ./backend/.env
     ports:
       - "5000:5000"  # Пробрасываем порт 5000 из контейнера на хост
     volumes:
@@ -11,25 +11,25 @@ services:
       db:
         condition: service_healthy  # Ждём готовности БД
     environment:
-      - DBNAME=${DB_NAME}  # Передаем переменные из .env
-      - USER=${USER}
-      - PASSWORD=${PASSWORD}
-      - HOST=${HOST_NAME}
-      - PORT=${PORT_NAME}
+      - DBNAME=remont_bd  # Передаем переменные из .env
+      - USER=postgres
+      - PASSWORD=12341234
+      - HOST=db
+      - PORT=5432
 
   db:
     image: postgres:16  # Используем официальный образ PostgreSQL 16
     environment:
-      - POSTGRES_DB=${DB_NAME}  # Используем те же переменные
-      - POSTGRES_USER=${USER}
-      - POSTGRES_PASSWORD=${PASSWORD}
+      - POSTGRES_DB=remont_db # Используем те же переменные
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=12341234
     volumes:
       - postgres_data:/var/lib/postgresql/data  # Постоянное хранилище для данных БД
-      - ./dal/create_db.sql:/docker-entrypoint-initdb.d/init.sql
+      #- ./dal/create_db.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5434:5432"  # Пробрасываем порт 5432 для доступа к БД с хоста
-    healthcheck:  # Дополнительная проверка здоровья БД
-      test: ["CMD-SHELL", "pg_isready -U postgres -d zilant_look"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
       retries: 5
