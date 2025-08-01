@@ -1,0 +1,11 @@
+# Unused & temp files
+\!UNUSED
+~*
+*_
+zia*
+*.sw?
+*~
+\!ARC*
+*.session
+*crashed-session*
+

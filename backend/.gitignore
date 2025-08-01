@@ -1,0 +1,18 @@
+# Byte-compiled / optimized / DLL files
+.mypy_cache/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# venv
+.venv
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+*.stats
+
+

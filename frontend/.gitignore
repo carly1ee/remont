@@ -39,3 +39,6 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# pnpm: use npm for production
+pnpm-lock.yaml
