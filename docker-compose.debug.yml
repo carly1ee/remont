@@ -1,0 +1,45 @@
+services:
+  app:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile.debug
+    env_file:
+      - ./backend/.env
+    ports:
+      - "5000:5000"  # Flask app port
+      - "5678:5678"  # Debug port
+    volumes:
+      - ./backend:/app  # Mount backend directory for live code changes
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DBNAME=remont_bd
+      - USER=postgres
+      - PASSWORD=12341234
+      - HOST=db
+      - PORT=5432
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+      - FLASK_APP=main.py
+    stdin_open: true
+    tty: true
+
+  db:
+    image: postgres:16
+    environment:
+      - POSTGRES_DB=remont_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=12341234
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data: 

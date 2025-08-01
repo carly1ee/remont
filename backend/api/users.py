@@ -108,7 +108,7 @@ def profile():
         }
 
         if user['role_id'] == 1:
-            engineer_profile = UserDAL.get_engineer_profile(user_id)
+            engineer_profile = UserDAL.get_engineer_profile(current_user_id)
             if engineer_profile:
                 response.update({
                     'balance': engineer_profile['balance'],

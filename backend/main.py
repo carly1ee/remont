@@ -13,8 +13,14 @@ app = Flask(__name__)
 app.config['JWT_SECRET_KEY'] = config.SECRET_KEY
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = False  # Для теста
 
-
-CORS(app, origins=["http://localhost:4200"])
+# CORS configuration
+cors_origins = ['http://localhost:4200', 'http://127.0.0.1:4200']
+CORS(app,
+    origins=cors_origins,
+    methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allow_headers=['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    expose_headers=['Content-Type', 'Authorization'],
+    supports_credentials=True)
 
 jwt = JWTManager(app)
 DatabaseManager.initialize(config)
