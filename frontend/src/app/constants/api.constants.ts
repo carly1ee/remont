@@ -1,5 +1,5 @@
 //const BASE_URL = 'http://192.168.31.248:5000';
-const BASE_URL = 'http://localhost:5000/api';
+const BASE_URL = 'http://localhost:5000';
 
 export const API = {
   LOGIN: `${BASE_URL}/users/login`, // Авторизация пользователя
