@@ -1,12 +1,24 @@
 services:
-  app:
-    build: .  # Собираем образ из Dockerfile в текущей директории
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx.Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  backend:
+    build:  # Собираем образ из Dockerfile в текущей директории
+      context: ./backend
+      dockerfile: Dockerfile
     env_file:
       - ./backend/.env
-    ports:
-      - "5000:5000"  # Пробрасываем порт 5000 из контейнера на хост
-    volumes:
-      - .:/app  # Монтируем текущую директорию в /app внутри контейнера (для разработки)
+    # ports:
+      # - "5000:5000"  # Пробрасываем порт 5000 из контейнера на хост
+    # volumes:
+      # - .:/app  # Монтируем текущую директорию в /app внутри контейнера (для разработки)
     depends_on:
       db:
         condition: service_healthy  # Ждём готовности БД
@@ -16,15 +28,22 @@ services:
       - PASSWORD=12341234
       - HOST=db
       - PORT=5432
-
+    restart: unless-stopped
+  # frontend:
+  #   build:  # Собираем образ из Dockerfile в текущей директории
+  #     context: ./frontend
+  #     dockerfile: Dockerfile
+  #   env_file:
+  #     - ./frontend/.env
+  #   ports:
   db:
     image: postgres:16  # Используем официальный образ PostgreSQL 16
     environment:
       - POSTGRES_DB=remont_db # Используем те же переменные
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=12341234
-    volumes:
-      - postgres_data:/var/lib/postgresql/data  # Постоянное хранилище для данных БД
+    # volumes:
+      # - postgres_data:/var/lib/postgresql/data  # Постоянное хранилище для данных БД
       #- ./dal/create_db.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5434:5432"  # Пробрасываем порт 5432 для доступа к БД с хоста
@@ -33,6 +52,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
-volumes:
-  postgres_data:  # Объявляем том для хранения данных БД
+# volumes:
+#   postgres_data:  # Объявляем том для хранения данных БД
