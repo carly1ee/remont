@@ -20,34 +20,20 @@
 
           <div class="form-group">
             <label for="employee-name">Имя пользователя</label>
-            <input
-              id="employee-name"
-              type="text"
-              [(ngModel)]="newEmployee.name"
-              placeholder="Введите имя"
-            />
+            <input id="employee-name" type="text" [(ngModel)]="newEmployee.name" placeholder="Введите имя" />
           </div>
         </div>
 
         <div class="form-column">
           <div class="form-group">
             <label for="employee-login">Логин</label>
-            <input
-              id="employee-login"
-              type="text"
-              [(ngModel)]="newEmployee.login"
-              placeholder="Введите логин"
-            />
+            <input id="employee-login" type="text" [(ngModel)]="newEmployee.login" placeholder="Введите логин" />
           </div>
 
           <div class="form-group">
             <label for="employee-password">Пароль</label>
-            <input
-              id="employee-password"
-              type="password"
-              [(ngModel)]="newEmployee.password"
-              placeholder="Введите пароль"
-            />
+            <input id="employee-password" type="password" [(ngModel)]="newEmployee.password"
+              placeholder="Введите пароль" />
           </div>
         </div>
       </div>
@@ -68,10 +54,7 @@
       <div class="engineer-info">
         <p>
           Активных заявок: {{ engineer.active_requests }}
-          <button
-            (click)="showEngineerCredentials(engineer)"
-            class="balance-btn right"
-          >
+          <button (click)="showEngineerCredentials(engineer)" class="balance-btn right">
             Логин и пароль
           </button>
         </p>
@@ -88,27 +71,20 @@
   </div>
 
   <div class="load-more-wrapper" *ngIf="hasMoreEngineers">
-    <button
-      (click)="loadNextPage()"
-      [disabled]="isLoading"
-      class="load-more-btn"
-    >
+    <button (click)="loadNextPage()" [disabled]="isLoading" class="load-more-btn">
       {{ isLoading ? 'Загрузка...' : 'Показать ещё' }}
     </button>
   </div>
 
   <div class="section-title">
-    <h2>Профили операторв и менеджеров</h2>
+    <h2>Профили операторов и менеджеров</h2>
   </div>
 
   <div class="engineers-grid">
     <div class="engineer-card" *ngFor="let employee of employees">
       <div class="engineer-header">
         <h4 class="engineer-name">{{ employee.display_name }}</h4>
-        <button
-          (click)="showEngineerCredentials(employee)"
-          class="balance-btn right"
-        >
+        <button (click)="showEngineerCredentials(employee)" class="balance-btn right">
           Логин и пароль
         </button>
       </div>
@@ -145,12 +121,7 @@
   </div>
 </div>
 
-<div
-  id="balance-modal"
-  class="balance-modal"
-  [class.show]="isBalanceModalOpen"
-  (click)="closeBalanceModal()"
->
+<div id="balance-modal" class="balance-modal" [class.show]="isBalanceModalOpen" (click)="closeBalanceModal()">
   <div class="modal-content" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h3>Управление балансом</h3>
@@ -170,9 +141,7 @@
           </div>
           <div>
             Текущий баланс:
-            <span id="modal-current-balance"
-              >{{ selectedEngineer?.balance }} ₽</span
-            >
+            <span id="modal-current-balance">{{ selectedEngineer?.balance }} ₽</span>
           </div>
         </div>
       </div>
@@ -183,21 +152,11 @@
         <label>Тип операции</label>
         <div class="radio-group">
           <label>
-            <input
-              type="radio"
-              name="operation"
-              value="add"
-              [(ngModel)]="operationType"
-            />
+            <input type="radio" name="operation" value="add" [(ngModel)]="operationType" />
             <span class="green-text">Пополнение</span>
           </label>
           <label>
-            <input
-              type="radio"
-              name="operation"
-              value="subtract"
-              [(ngModel)]="operationType"
-            />
+            <input type="radio" name="operation" value="subtract" [(ngModel)]="operationType" />
             <span class="red-text">Списание</span>
           </label>
         </div>
@@ -205,13 +164,8 @@
 
       <div class="form-group">
         <label>Сумма (₽)</label>
-        <input
-          type="number"
-          id="balance-amount"
-          placeholder="Введите сумму"
-          [(ngModel)]="amount"
-          (focus)="clearAmountIfZero()"
-        />
+        <input type="number" id="balance-amount" placeholder="Введите сумму" [(ngModel)]="amount"
+          (focus)="clearAmountIfZero()" />
       </div>
 
       <!-- <div class="form-group">
