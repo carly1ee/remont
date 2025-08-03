@@ -367,7 +367,7 @@ def get_engineers_stats():
         current_user_id = get_jwt_identity()
         user = UserDAL.get_user_by_id(current_user_id)
 
-        if not user or user['role_id'] not in [1, 3]:  # менеджер или инженер
+        if not user or user['role_id'] not in [1, 2, 3]:  # менеджер или инженер
             return jsonify({'error': 'Access denied'}), 403
 
         data = request.get_json(silent=True)
