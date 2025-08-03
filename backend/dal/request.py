@@ -484,7 +484,6 @@ class RequestDAL:
                     LEFT JOIN engineer_profile ep ON u.user_id = ep.user_id
                     LEFT JOIN request r_active ON r_active.engineer_id = u.user_id 
                         AND r_active.status_id IN (2, 3)
-                        AND (r_active.assigned_time IS NULL OR r_active.assigned_time <= %s)
                     LEFT JOIN request r_completed ON r_completed.engineer_id = u.user_id 
                         AND r_completed.status_id = 4 
                         AND r_completed.done_time >= %s
@@ -492,7 +491,7 @@ class RequestDAL:
                     ORDER BY u.user_id
                     LIMIT %s OFFSET %s;
                 """
-                cursor.execute(query, (start_of_month, current_time, start_of_month, per_page, offset))
+                cursor.execute(query, (start_of_month, start_of_month, per_page, offset))
                 return [dict(row) for row in cursor.fetchall()]
 
         except Exception as e:
@@ -547,7 +546,6 @@ class RequestDAL:
                     FROM request
                     WHERE engineer_id = %s
                       AND status_id IN (2, 3)
-                      AND assigned_time <= NOW()
                     ORDER BY assigned_time DESC;
                 """
                 cursor.execute(query, (engineer_id,))
